@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Generation Interface</title>
+  <style>
+    .preview-image {
+      max-width: 512px;
+      margin-top: 10px;
+    }
+    .form-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Image Generation Interface</h1>
+
+  <!-- Text to Image Section -->
+  <div class="form-section">
+    <h2>Text to Image</h2>
+    <form id="promptForm">
+      <label for="prompt">Enter your text prompt:</label><br>
+      <textarea id="prompt" name="prompt" rows="4" cols="50"></textarea><br>
+      <button type="submit">Generate Image</button>
+    </form>
+    <div id="textToImagePreview">
+      <img id="generatedImage" class="preview-image" style="display: none;">
+    </div>
+  </div>
+
+  <!-- Image to Image Section -->
+  <div class="form-section">
+    <h2>Image to Image</h2>
+    <form id="img2imgForm">
+      <label for="sourceImage">Upload source image:</label><br>
+      <input type="file" id="sourceImage" name="image" accept="image/*" required><br>
+      <label for="img2imgPrompt">Enter prompt for transformation:</label><br>
+      <textarea id="img2imgPrompt" name="prompt" rows="4" cols="50" required></textarea><br>
+      <button type="submit">Transform Image</button>
+    </form>
+    <div id="imageToImagePreview">
+      <img id="transformedImage" class="preview-image" style="display: none;">
+    </div>
+  </div>
+
+  <script>
+    // Text to Image Form Handler
+    document.getElementById('promptForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const prompt = document.getElementById('prompt').value;
+      
+      try {
+        const response = await fetch('http://localhost:8080/generate/' + prompt, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ prompt: prompt })
+        });
+
+        if (response.ok) {
+          const blob = await response.blob();
+          const imageUrl = URL.createObjectURL(blob);
+          
+          const img = document.getElementById('generatedImage');
+          img.src = imageUrl;
+          img.style.display = 'block';
+          
+          // Create download link
+          const downloadLink = document.createElement('a');
+          downloadLink.href = imageUrl;
+          downloadLink.download = 'generated_image.png';
+          downloadLink.click();
+          
+          URL.revokeObjectURL(imageUrl);
+        } else {
+          alert('Error generating image');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error generating image');
+      }
+    });
+
+    // Image to Image Form Handler
+    document.getElementById('img2imgForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append('image', document.getElementById('sourceImage').files[0]);
+      formData.append('prompt', document.getElementById('img2imgPrompt').value);
+      
+      try {
+        const response = await fetch('http://localhost:8080/img2img', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (response.ok) {
+          const blob = await response.blob();
+          const imageUrl = URL.createObjectURL(blob);
+          
+          const img = document.getElementById('transformedImage');
+          img.src = imageUrl;
+          img.style.display = 'block';
+          
+          // Create download link
+          const downloadLink = document.createElement('a');
+          downloadLink.href = imageUrl;
+          downloadLink.download = 'transformed_image.png';
+          downloadLink.click();
+          
+          URL.revokeObjectURL(imageUrl);
+        } else {
+          alert('Error transforming image');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error transforming image');
+      }
+    });
+  </script>
+</body>
+</html>
